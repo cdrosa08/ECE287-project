@@ -1,0 +1,140 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.STD_LOGIC_ARITH.all;
+use IEEE.STD_LOGIC_UNSIGNED.all;
+entity trafficLight is
+port (
+	CLK_50MHz, S2, S1, L1, L2 : in  std_logic;          -- clock signal
+	LED, LED2, LED3, LED4, LED5, LED6, TEST      : out std_logic);         -- LED to blink
+end trafficLight;
+
+
+architecture Behavior of trafficLight is
+	signal counter : std_logic_vector(30 downto 0);  -- signal that does the
+	signal counter2 : std_logic_vector(30 downto 0);  -- signal that does the
+	signal CLK_G : std_logic:= '1';           -- to drive the green LED
+	signal CLK_Y : std_logic:= '0';           -- to drive the yellow LED
+	signal CLK_R : std_logic:= '0'; 	-- to drive the red LED
+	signal CLK_G1 : std_logic:= '0';	--to drive back green
+	signal CLK_Y1 : std_logic:= '0';	--to drive back yellow
+	signal CLK_R1 : std_logic:= '1';	--to drive back red
+	signal TEST_SIG : std_logic:= '0'; -- to drive a test LED;
+	signal Case_Selector : std_logic;
+
+	begin  -- Behavior
+	
+		Prescaler: process (CLK_50MHz)
+	
+		begin  -- process Prescaler
+	
+		if (CLK_50MHz'event and CLK_50MHz = '1') then  -- rising clock edge
+	
+			if ((counter < "1000001100100001010101100000000") and (S1 = '1') and (S2 = '1')) then   -- default process, 22 seconds long, happens if no cars are at the lights or cars are at both lights
+				counter <= counter + 1;
+	
+				if (counter = "010100110111001001001110000000") then  -- at 7 seconds
+					counter2 <= "0000000000000000000000000000000"; -- make sure no bugs exist
+					CLK_G <= '0';
+					CLK_G1 <= '0';
+					CLK_Y <= '1';
+					CLK_Y1 <= '0';
+					CLK_R <= '0';
+					CLK_R1 <= '1';
+				end if;
+				
+				if (counter = "0100000110010000101010110000000") then  -- at 11 seconds
+					CLK_G <= '0';
+					CLK_G1 <= '1';
+					CLK_Y <= '0';
+					CLK_Y1 <= '0';
+					CLK_R <= '1';
+					CLK_R1 <= '0';
+				end if;
+				if (counter = "0110101101001001110100100000000") then -- at 18 seconds
+					counter2 <= "0000000000000000000000000000000"; -- make sure no bugs exist
+					CLK_G <= '0';
+					CLK_G1 <= '0';
+					CLK_Y <= '0';
+					CLK_Y1 <= '1';
+					CLK_R <= '1';
+					CLK_R1 <= '0';
+				end if;
+				
+			elsif (L1 = '1') and (CLK_Y ='0') then -- happens if a car is at the first light and it is red or green
+				Case_Selector <= '0'; -- make sure case selector is reset when switch is pressed
+				counter <= "0010100110111001001001110000000";
+				
+				if (counter2 < "0001011111010111100001000000000") and ((CLK_R = '1') or (Case_Selector = '1')) then -- if light is red
+					counter2 <= counter2 + 1;
+					CLK_G <= '0';
+					CLK_G1 <= '0';
+					CLK_Y <= '0';
+					CLK_Y1 <= '1';
+					CLK_R <= '1';
+					CLK_R1 <= '0';
+					Case_Selector <= '1';
+						
+				else -- case for if the light car arrives at is initially green
+					CLK_G <= '1';
+					CLK_G1 <= '0';
+					CLK_Y <= '0';
+					CLK_Y1 <= '0';
+					CLK_R <= '0';
+					CLK_R1 <= '1';
+					counter2 <= "0000000000000000000000000000000";
+					Case_Selector <= '0';
+				end if;
+
+			elsif (S2 = '0') and (L1 = '1') and (CLK_Y1 = '0') then -- happens if a car is at the second light and light is green or red
+				Case_Selector <= '0'; -- make sure case selector is reset when switch is pressed
+				counter <= "0110101101001001110100100000000";
+				
+				if (counter2 < "0001011111010111100001000000000") and ((CLK_R1 = '1') or (Case_Selector = '1') or (CLK_Y1 = '1')) then -- if light is red
+					counter2 <= counter2 + 1;
+					CLK_G <= '0';
+					CLK_G1 <= '0';
+					CLK_Y <= '1';
+					CLK_Y1 <= '0';
+					CLK_R <= '0';
+					CLK_R1 <= '1';
+					Case_Selector <= '1';
+						
+				else -- case for if the light car arrives at is initially green
+					CLK_G <= '0';
+					CLK_G1 <= '1';
+					CLK_Y <= '0';
+					CLK_Y1 <= '0';
+					CLK_R <= '1';
+					CLK_R1 <= '0';
+					counter2 <= "0000000000000000000000000000000";
+					Case_Selector <= '0';
+				end if;
+				
+			else
+				CLK_G <= '1';
+				CLK_G1 <= '0';
+				CLK_Y <= '0';
+				CLK_Y1 <= '0';
+				CLK_R <= '0';
+				CLK_R1 <= '1';
+				counter <= "0000000000000000000000000000000";
+				
+			end if;
+			
+--			if (L1 = '1') then
+--				TEST_SIG <= '0';
+--			else
+--				TEST_SIG <= '1';
+--			end if;
+			
+		end if;
+	
+	end process Prescaler;
+		LED <= CLK_G;
+		LED2 <= CLK_Y;
+		LED3 <= CLK_R;
+		LED4 <= CLK_G1;
+		LED5 <= CLK_Y1;
+		LED6 <= CLK_R1;
+		TEST <= TEST_SIG;
+end Behavior;
